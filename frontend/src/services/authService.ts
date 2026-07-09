@@ -1,139 +1,56 @@
-import axios from 'axios';
+import { api } from './api';
 
-const API_URL =
-  'http://localhost:5000/api/auth';
-
-// axios instance
-
-const api = axios.create({
-  baseURL: API_URL,
-});
-
-// attach token automatically
-
-api.interceptors.request.use(
-  (config) => {
-    const token =
-      localStorage.getItem(
-        'token'
-      );
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-
-  (error) => {
-    return Promise.reject(
-      error
-    );
-  }
-);
-
-// login
-
-const login = async (
-  email: string,
-  password: string
-) => {
+// login handler
+const login = async (email: string, password: string) => {
   try {
-    const res =
-      await api.post(
-        '/login',
-        {
-          email,
-          password,
-        }
-      );
+    const res = await api.post('/auth/login', { email, password });
+    const data = res.data;
 
-    const data =
-      res.data;
+    // FIX: Extract backend 'accessToken' mapping field correctly
+    if (data.accessToken) {
+      localStorage.setItem('token', data.accessToken);
 
-    // store auth consistently
-
-    if (data.token) {
-      localStorage.setItem(
-        'token',
-        data.token
-      );
-
-      if (
-        data.user?._id
-      ) {
-        localStorage.setItem(
-          'userId',
-          data.user._id
-        );
+      if (data.user?._id) {
+        localStorage.setItem('userId', data.user._id);
       }
 
-      if (
-        data.user?.role
-      ) {
-        localStorage.setItem(
-          'userRole',
-          data.user.role
-        );
+      if (data.user?.role) {
+        localStorage.setItem('userRole', data.user.role);
       }
     }
 
     return data;
   } catch (error: any) {
-    if (
-      error.response &&
-      error.response.data &&
-      error.response.data.message
-    ) {
-      throw new Error(
-        error.response
-          .data.message
-      );
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
     }
-
-    throw new Error(
-      'An unexpected error occurred. Please try again later.'
-    );
+    throw new Error('An unexpected error occurred. Please try again later.');
   }
 };
 
-// logout
-
-const logout = () => {
-  localStorage.removeItem(
-    'token'
-  );
-
-  localStorage.removeItem(
-    'userId'
-  );
-
-  localStorage.removeItem(
-    'userRole'
-  );
+// logout handler
+const logout = async () => {
+  try {
+    // Notify server to safely destroy httpOnly cookies
+    await api.post('/auth/logout');
+  } catch (err) {
+    console.error('Failed to clear cookie session on backend.', err);
+  } finally {
+    // Always wipe client data profiles regardless of network response
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userRole');
+  }
 };
 
-// current user
-
-const getCurrentUser =
-  () => {
-    return {
-      token:
-        localStorage.getItem(
-          'token'
-        ),
-
-      userId:
-        localStorage.getItem(
-          'userId'
-        ),
-
-      role:
-        localStorage.getItem(
-          'userRole'
-        ),
-    };
+// current user getter
+const getCurrentUser = () => {
+  return {
+    token: localStorage.getItem('token'),
+    userId: localStorage.getItem('userId'),
+    role: localStorage.getItem('userRole'),
   };
+};
 
 const authService = {
   login,

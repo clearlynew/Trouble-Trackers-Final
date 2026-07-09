@@ -125,7 +125,7 @@ router.post("/refresh", async (req, res) => {
         },
       };
 
-      const accessToken = jwt.sign(newPayload, { expiresIn: "15m" });
+      const accessToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "15m" });
       res.json({ accessToken });
     });
   } catch (err) {

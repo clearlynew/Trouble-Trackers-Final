@@ -42,6 +42,7 @@ export const mockUsers = [
     room: "204",
     complaintsSubmitted: 2,
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -53,6 +54,7 @@ export const mockUsers = [
     room: "312",
     complaintsSubmitted: 1,
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -64,6 +66,7 @@ export const mockUsers = [
     room: "156",
     complaintsSubmitted: 1,
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -75,6 +78,7 @@ export const mockUsers = [
     room: "118",
     complaintsSubmitted: 1,
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -85,6 +89,7 @@ export const mockUsers = [
     role: "admin",
     category: "Maintenance",
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -95,6 +100,7 @@ export const mockUsers = [
     role: "admin",
     category: "Internet",
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -105,6 +111,7 @@ export const mockUsers = [
     role: "admin",
     category: "Food",
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -115,6 +122,7 @@ export const mockUsers = [
     role: "admin",
     category: "Cleanliness",
     status: "active",
+    tokenVersion: 0,
   },
 
   {
@@ -124,6 +132,7 @@ export const mockUsers = [
     password: "password123",
     role: "superadmin",
     status: "active",
+    tokenVersion: 0,
   },
 ];
 

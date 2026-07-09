@@ -15,9 +15,10 @@ if (!process.env.JWT_SECRET) {
 }
 
 if (!process.env.REFRESH_SECRET) {
-     console.error("REFRESH_SECRET not set");
-     process.exit(1);
-   }
+  console.error("REFRESH_SECRET not set");
+  process.exit(1);
+}
+
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -51,11 +52,12 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // create JWT payload
+    // create JWT payload including tokenVersion
     const payload = {
       user: {
         _id: user._id,
         role: user.role,
+        tokenVersion: user.tokenVersion,
       },
     };
 
@@ -97,12 +99,6 @@ router.post("/login", async (req, res) => {
 });
 
 // POST /api/auth/refresh
-/* SCOPED VERSION NOTICE:
-  As requested, this endpoint explicitly skips:
-  - Refresh token revocation check lists (database verification)
-  - Token rotation parameters on single reuse instances
-  - Multi-device authorization lifecycle tracking
-*/
 router.post("/refresh", async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
@@ -112,16 +108,25 @@ router.post("/refresh", async (req, res) => {
     }
 
     // Verify incoming cookie token structure against specialized secret
-    jwt.verify(refreshToken, REFRESH_SECRET, (err, decoded) => {
+    jwt.verify(refreshToken, REFRESH_SECRET, async (err, decoded) => {
       if (err) {
         return res.status(401).json({ message: "Invalid or expired refresh token." });
       }
 
-      // Re-sign clean short-lived token layout assets
+      // Re-fetch user from database to check current token state viability
+      const user = await User.findById(decoded.user._id);
+      
+      // Reject if the token has been invalidated (logout-all, password change, deactivation etc.)
+      if (!user || user.tokenVersion !== decoded.user.tokenVersion) {
+        return res.status(401).json({ message: "Refresh token has been revoked." });
+      }
+
+      // Re-sign clean short-lived token layout assets carrying current version
       const newPayload = {
         user: {
-          _id: decoded.user._id,
-          role: decoded.user.role,
+          _id: user._id,
+          role: user.role,
+          tokenVersion: user.tokenVersion,
         },
       };
 

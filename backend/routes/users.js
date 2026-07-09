@@ -126,6 +126,9 @@ router.patch("/:id", async (req, res) => {
         return res.status(400).json({ message: "Password must be at least 8 characters long." });
       }
       updateData.passwordHash = await bcrypt.hash(password.trim(), 10);
+      
+      // Force user to log out of all active devices on password change
+      updateData.$inc = { tokenVersion: 1 };
     }
 
     if (email) {
@@ -161,6 +164,10 @@ router.patch("/:id/toggle-status", async (req, res) => {
     }
 
     user.status = user.status === "active" ? "inactive" : "active";
+    
+    // Increment version so their existing active login tokens become immediately invalid
+    user.tokenVersion += 1;
+
     await user.save();
 
     // Prevent password leak explicitly

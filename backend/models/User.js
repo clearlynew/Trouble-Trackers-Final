@@ -46,6 +46,11 @@ const UserSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
+    // Incremented to invalidate all previously issued refresh tokens
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true, // gives you createdAt and updatedAt for free

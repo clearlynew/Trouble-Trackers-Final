@@ -14,7 +14,7 @@ router.use(authMiddleware);
 
 // Create notification
 
-router.post("/", authMiddleware, adminMiddleware, async (req, res) => {
+router.post("/", adminMiddleware, async (req, res) => {
   try {
     const { recipient, complaint, type, title, message } = req.body;
 
@@ -115,42 +115,41 @@ router.put(
 );
 
 // Mark single notification as read
+const notif = await Notification.findById(req.params.id);
+   if (!notif) return res.status(404).json({ message: "Notification not found" });
+   if (notif.recipient.toString() !== req.userId) {
+     return res.status(403).json({ message: "Not authorized." });
+   }
+   // then proceed with update/delete
 
+
+// Mark single notification as read
 router.put(
   "/:id/mark-read",
-
   async (req, res) => {
     try {
-      if (
-        !mongoose.Types.ObjectId.isValid(
-          req.params.id
-        )
-      ) {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({
-          error:
-            "Invalid notification ID format.",
+          error: "Invalid notification ID format.",
         });
       }
 
-      const updatedNotif =
-        await Notification.findByIdAndUpdate(
-          req.params.id,
+      const notif = await Notification.findById(req.params.id);
 
-          {
-            isRead: true,
-          },
-
-          {
-            new: true,
-          }
-        );
-
-      if (!updatedNotif) {
+      if (!notif) {
         return res.status(404).json({
-          message:
-            "Notification not found",
+          message: "Notification not found",
         });
       }
+
+      if (notif.recipient.toString() !== req.userId) {
+        return res.status(403).json({
+          message: "Not authorized to modify this notification.",
+        });
+      }
+
+      notif.isRead = true;
+      const updatedNotif = await notif.save();
 
       res.json(updatedNotif);
     } catch (err) {
@@ -162,38 +161,34 @@ router.put(
 );
 
 // Delete notification
-
 router.delete(
   "/:id",
-
   async (req, res) => {
     try {
-      if (
-        !mongoose.Types.ObjectId.isValid(
-          req.params.id
-        )
-      ) {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({
-          error:
-            "Invalid notification ID format.",
+          error: "Invalid notification ID format.",
         });
       }
 
-      const deleted =
-        await Notification.findByIdAndDelete(
-          req.params.id
-        );
+      const notif = await Notification.findById(req.params.id);
 
-      if (!deleted) {
+      if (!notif) {
         return res.status(404).json({
-          message:
-            "Notification not found",
+          message: "Notification not found",
         });
       }
+
+      if (notif.recipient.toString() !== req.userId) {
+        return res.status(403).json({
+          message: "Not authorized to delete this notification.",
+        });
+      }
+
+      await Notification.findByIdAndDelete(req.params.id);
 
       res.json({
-        message:
-          "Notification deleted",
+        message: "Notification deleted",
       });
     } catch (err) {
       res.status(500).json({

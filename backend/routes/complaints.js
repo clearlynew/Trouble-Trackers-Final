@@ -9,11 +9,13 @@ import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
 
 import { sendEmail } from "../utils/sendEmail.js";
+import imagekit from "../utils/imagekit.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
 // Get all complaints (Paginated)
-router.get("/", async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
     // Parse pagination parameters with safe defaults
     const page = parseInt(req.query.page, 10) || 1;
@@ -45,7 +47,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get complaint by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", authMiddleware, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid complaint ID." });
@@ -90,13 +92,11 @@ router.post("/", authMiddleware, async (req, res) => {
     const newTitle = title.trim().toLowerCase();
     const newDescription = description.trim().toLowerCase();
 
-    const isDuplicate = recentComplaints.some((existingComplaint) => {
-      const existingTitle = existingComplaint.title.trim().toLowerCase();
-      const existingDescription = existingComplaint.description.trim().toLowerCase();
-      const exactMatch = existingTitle === newTitle && existingDescription === newDescription && existingComplaint.domain === domain;
-      const similarTitleAndDomain = existingComplaint.domain === domain && (existingTitle.includes(newTitle) || newTitle.includes(existingTitle));
-      return exactMatch || similarTitleAndDomain;
-    });
+   const isDuplicate = recentComplaints.some((existingComplaint) => {
+     const existingTitle = existingComplaint.title.trim().toLowerCase();
+     const existingDescription = existingComplaint.description.trim().toLowerCase();
+     return existingTitle === newTitle && existingDescription === newDescription && existingComplaint.domain === domain;
+   });
 
     if (isDuplicate) {
       return res.status(409).json({ message: "A very similar complaint has already been submitted recently." });

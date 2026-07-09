@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules JWT_SECRET=test_jwt_secret_key_123 REFRESH_SECRET=test_refresh_secret_key_123 MONGO_URI_TEST=mongodb://localhost:27017/hostel_management_test jest --runInBand --detectOpenHandles"
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules JWT_SECRET=test_jwt_secret_key_123 REFRESH_SECRET=test_refresh_secret_key_123 MONGO_URI_TEST=mongodb://localhost:27017/hostel_management_test IMAGEKIT_PUBLIC_KEY=dummy_public_key IMAGEKIT_PRIVATE_KEY=dummy_private_key IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/dummy jest --runInBand --detectOpenHandles"
   },
   "keywords": [],
   "author": "",

@@ -15,9 +15,9 @@ if (!process.env.JWT_SECRET) {
 }
 
 if (!process.env.REFRESH_SECRET) {
-  console.error("REFRESH_SECRET not set. Using insecure fallback.");
-}
-
+     console.error("REFRESH_SECRET not set");
+     process.exit(1);
+   }
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -65,7 +65,7 @@ router.post("/login", async (req, res) => {
     });
 
     // 2. Generate long-lived refresh token (7 days)
-    const refreshToken = jwt.sign(payload, REFRESH_SECRET || JWT_SECRET, {
+    const refreshToken = jwt.sign(payload, REFRESH_SECRET, {
       expiresIn: "7d",
     });
 
@@ -112,7 +112,7 @@ router.post("/refresh", async (req, res) => {
     }
 
     // Verify incoming cookie token structure against specialized secret
-    jwt.verify(refreshToken, REFRESH_SECRET || JWT_SECRET, (err, decoded) => {
+    jwt.verify(refreshToken, REFRESH_SECRET, (err, decoded) => {
       if (err) {
         return res.status(401).json({ message: "Invalid or expired refresh token." });
       }
@@ -125,7 +125,7 @@ router.post("/refresh", async (req, res) => {
         },
       };
 
-      const accessToken = jwt.sign(newPayload, JWT_SECRET, { expiresIn: "15m" });
+      const accessToken = jwt.sign(newPayload, { expiresIn: "15m" });
       res.json({ accessToken });
     });
   } catch (err) {

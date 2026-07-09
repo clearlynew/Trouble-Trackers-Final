@@ -12,7 +12,6 @@ import { submitComplaint } from '../services/complaintService';
 
 interface ComplaintSubmissionModalProps {
   isOpen: boolean;
-
   onClose: () => void;
 }
 
@@ -64,19 +63,12 @@ const ComplaintSubmissionModal: React.FC<
   const resetFormAndClose =
     () => {
       setTitle('');
-
       setDescription('');
-
       setDomain('');
-
       setImageFiles([]);
-
       setImagePreviews([]);
-
       setError(null);
-
       setIsLoading(false);
-
       onClose();
     };
 
@@ -85,8 +77,11 @@ const ComplaintSubmissionModal: React.FC<
       e: React.FormEvent
     ) => {
       e.preventDefault();
-
       setError(null);
+
+      // 📡 Diagnostic Logs
+      console.log("🚀 Submit button clicked!");
+      console.log("📊 Total files sitting in React State right now:", imageFiles.length);
 
       if (
         !title.trim() ||
@@ -96,23 +91,18 @@ const ComplaintSubmissionModal: React.FC<
         setError(
           'Please fill in all required fields.'
         );
-
         return;
       }
 
       setIsLoading(true);
 
       try {
-        let uploadedImageUrls: string[] =
-          [];
+        let uploadedImageUrls: any[] = [];
 
-        // image upload
-
-        if (
-          imageFiles.length
-        ) {
-          const formData =
-            new FormData();
+        // image upload handler
+        if (imageFiles.length > 0) {
+          console.log("📡 State confirm: Files detected! Dispatching API upload payload...");
+          const formData = new FormData();
 
           imageFiles.forEach(
             (file) =>
@@ -139,11 +129,9 @@ const ComplaintSubmissionModal: React.FC<
               {
                 method:
                   'POST',
-
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
-
                 body: formData,
               }
             );
@@ -165,31 +153,25 @@ const ComplaintSubmissionModal: React.FC<
             );
           }
 
-          // backend returns { filePaths: [...] }
+          const data = await uploadResponse.json();
+          console.log("✅ Server Upload Response Payload Received:", data);
 
-          const {
-            filePaths,
-          } =
-            await uploadResponse.json();
-
-          uploadedImageUrls =
-            filePaths;
+          // Standardize payload extraction based on whether backend returns filePaths or objects
+          uploadedImageUrls = data.filePaths || data.images || data;
+        } else {
+          console.warn("⚠️ Warning: imageFiles array was empty. Skipping image upload step.");
         }
 
-        // complaint submit
-
+        // complaint submission payload
         await submitComplaint({
           title,
           description,
           domain,
-          images:
-            uploadedImageUrls,
+          images: uploadedImageUrls,
         });
 
-        // success
-
+        // success cleanup
         resetFormAndClose();
-
         alert(
           'Complaint submitted successfully!'
         );
@@ -198,16 +180,8 @@ const ComplaintSubmissionModal: React.FC<
           err.message ||
           'An unexpected error occurred during submission.';
 
-        setError(
-          errorMessage
-        );
-
-        setIsLoading(false);
-
-        console.error(
-          'Submission Error:',
-          err
-        );
+        setError(errorMessage);
+        console.error('Submission Error Details:', err);
       } finally {
         setIsLoading(false);
       }
@@ -218,21 +192,14 @@ const ComplaintSubmissionModal: React.FC<
       e: React.ChangeEvent<HTMLInputElement>
     ) => {
       setError(null);
-
-      const files =
-        e.target.files;
-
+      const files = e.target.files;
       if (!files) return;
 
-      const currentFilesCount =
-        imageFiles.length;
-
-      const filesArray =
-        Array.from(files).slice(
-          0,
-          5 -
-            currentFilesCount
-        );
+      const currentFilesCount = imageFiles.length;
+      const filesArray = Array.from(files).slice(
+        0,
+        5 - currentFilesCount
+      );
 
       if (
         currentFilesCount +
@@ -242,32 +209,16 @@ const ComplaintSubmissionModal: React.FC<
         setError(
           `You can only upload a maximum of 5 images. Already have ${currentFilesCount}.`
         );
-
         return;
       }
 
-      filesArray.forEach(
-        (file) => {
-          setImageFiles(
-            (prev) => [
-              ...prev,
-              file,
-            ]
-          );
+      // Batch create Object previews cleanly in one single batch pass
+      const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
 
-          setImagePreviews(
-            (prev) => [
-              ...prev,
-              URL.createObjectURL(
-                file
-              ),
-            ]
-          );
-        }
-      );
+      setImageFiles((prev) => [...prev, ...filesArray]);
+      setImagePreviews((prev) => [...prev, ...newPreviews]);
 
-      // reset input
-
+      // reset file input value stream
       e.target.value = '';
     };
 
@@ -297,8 +248,7 @@ const ComplaintSubmissionModal: React.FC<
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
-            Submit New
-            Complaint
+            Submit New Complaint
           </h2>
 
           <button
@@ -321,14 +271,12 @@ const ComplaintSubmissionModal: React.FC<
           className="p-6 space-y-6"
         >
           {/* title */}
-
           <div>
             <label
               htmlFor="title"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Complaint
-              Title *
+              Complaint Title *
             </label>
 
             <input
@@ -353,7 +301,6 @@ const ComplaintSubmissionModal: React.FC<
           </div>
 
           {/* domain */}
-
           <div>
             <label
               htmlFor="domain"
@@ -380,8 +327,7 @@ const ComplaintSubmissionModal: React.FC<
               }
             >
               <option value="">
-                Select a
-                domain
+                Select a domain
               </option>
 
               {domains.map(
@@ -398,14 +344,12 @@ const ComplaintSubmissionModal: React.FC<
           </div>
 
           {/* description */}
-
           <div>
             <label
               htmlFor="description"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Detailed
-              Description *
+              Detailed Description *
             </label>
 
             <textarea
@@ -432,11 +376,9 @@ const ComplaintSubmissionModal: React.FC<
           </div>
 
           {/* images */}
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attach Images
-              (Optional)
+              Attach Images (Optional)
             </label>
 
             {error && (
@@ -517,14 +459,11 @@ const ComplaintSubmissionModal: React.FC<
             </div>
 
             <p className="text-sm text-gray-500 mt-2">
-              You can attach
-              up to 5
-              images.
+              You can attach up to 5 images.
             </p>
           </div>
 
           {/* buttons */}
-
           <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-200">
             <button
               type="button"
@@ -549,7 +488,6 @@ const ComplaintSubmissionModal: React.FC<
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-
                   Submitting...
                 </>
               ) : (

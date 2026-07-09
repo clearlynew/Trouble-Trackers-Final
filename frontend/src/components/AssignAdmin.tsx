@@ -81,13 +81,20 @@ const AssignAdmin: React.FC<
         setLoading(true);
 
         try {
-          const users =
+          const responseData =
             await getAll();
 
-          // filter matching admins
+          // ✅ SAFE EXTRACTION: Get the array from responseData.users, 
+          // or fallback to responseData if it's already a raw array.
+          const usersArray = responseData?.users || responseData;
 
+          if (!Array.isArray(usersArray)) {
+            throw new Error("Received user data is not an array format.");
+          }
+
+          // filter matching admins
           const adminUsers: User[] =
-            users
+            usersArray
               .filter(
                 (u: any) =>
                   u.role ===

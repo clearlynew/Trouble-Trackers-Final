@@ -8,11 +8,38 @@ import adminMiddleware from "../middleware/admin.js";
 
 const router = express.Router();
 
-// Apply middleware globally to all routes in this router
-router.use(authMiddleware, adminMiddleware);
+// Apply authMiddleware globally to all routes (users must be logged in)
+router.use(authMiddleware);
+
+/* ==========================================
+   🔓 OPEN ROUTES (Any Logged-In User)
+   ========================================== */
+
+// Get user by ID (Used by frontend dashboard to display card submitters/assignees)
+router.get("/:id", async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+
+    const user = await User.findById(req.params.id).select("-passwordHash");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+/* ==========================================
+   🔒 ADMIN-ONLY ROUTES
+   ========================================== */
 
 // Get all users (Paginated)
-router.get("/", async (req, res) => {
+router.get("/", adminMiddleware, async (req, res) => {
   try {
     // Parse pagination parameters with safe defaults
     const page = parseInt(req.query.page, 10) || 1;
@@ -43,26 +70,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get user by ID
-router.get("/:id", async (req, res) => {
-  try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid user ID format" });
-    }
-
-    const user = await User.findById(req.params.id).select("-passwordHash");
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // Create new user
-router.post("/", async (req, res) => {
+// POST /api/users (Create new user)
+router.post("/", adminMiddleware, async (req, res) => {
   try {
     const { name, email, password, role, category, room } = req.body;
 
@@ -81,9 +91,9 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 8 characters long." });
     }
 
-    // Trim password consistently before hashing
     const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
+    // ✅ FIXED: Add explicit status and tokenVersion initializers here
     const user = new User({
       name,
       email: normalizedEmail,
@@ -91,11 +101,12 @@ router.post("/", async (req, res) => {
       role,
       category,
       room,
+      status: "active",     // Ensures the authorization middleware doesn't block them
+      tokenVersion: 0       // Syncs up with the token decoding check
     });
 
     const newUser = await user.save();
     
-    // Safely remove passwordHash before returning response
     const userResponse = newUser.toJSON();
     delete userResponse.passwordHash;
 
@@ -104,9 +115,8 @@ router.post("/", async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
-
 // Update user
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", adminMiddleware, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });
@@ -152,7 +162,7 @@ router.patch("/:id", async (req, res) => {
 });
 
 // Toggle user status
-router.patch("/:id/toggle-status", async (req, res) => {
+router.patch("/:id/toggle-status", adminMiddleware, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });
@@ -181,7 +191,7 @@ router.patch("/:id/toggle-status", async (req, res) => {
 });
 
 // Delete user
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminMiddleware, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });

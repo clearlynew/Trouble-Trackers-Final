@@ -2,18 +2,15 @@ import express from "express";
 import mongoose from "mongoose";
 
 import Notification from "../models/Notification.js";
-
 import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
 
 const router = express.Router();
 
 // protect all notification routes
-
 router.use(authMiddleware);
 
 // Create notification
-
 router.post("/", adminMiddleware, async (req, res) => {
   try {
     const { recipient, complaint, type, title, message } = req.body;
@@ -33,18 +30,13 @@ router.post("/", adminMiddleware, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-// Send notifications to multiple users
 
+// Send notifications to multiple users
 router.post(
   "/send-multiple",
-
   adminMiddleware,
-
   async (req, res) => {
-    const {
-      notification,
-      recipientIds,
-    } = req.body;
+    const { notification, recipientIds } = req.body;
 
     if (
       !notification ||
@@ -53,27 +45,19 @@ router.post(
       recipientIds.length === 0
     ) {
       return res.status(400).json({
-        error:
-          "Notification and at least one recipient ID are required.",
+        error: "Notification and at least one recipient ID are required.",
       });
     }
 
     try {
-      const notificationsToInsert =
-        recipientIds.map((id) => ({
-          ...notification,
+      const notificationsToInsert = recipientIds.map((id) => ({
+        ...notification,
+        recipient: id,
+      }));
 
-          recipient: id,
-        }));
+      const createdNotifs = await Notification.insertMany(notificationsToInsert);
 
-      const createdNotifs =
-        await Notification.insertMany(
-          notificationsToInsert
-        );
-
-      res.status(201).json(
-        createdNotifs
-      );
+      res.status(201).json(createdNotifs);
     } catch (err) {
       res.status(500).json({
         error: err.message,
@@ -83,25 +67,19 @@ router.post(
 );
 
 // Mark all notifications as read
-
 router.put(
   "/mark-all-read",
-
   async (req, res) => {
     try {
-      const updated =
-        await Notification.updateMany(
-          {
-            recipient:
-              req.userId,
-
-            isRead: false,
-          },
-
-          {
-            isRead: true,
-          }
-        );
+      const updated = await Notification.updateMany(
+        {
+          recipient: req.userId,
+          isRead: false,
+        },
+        {
+          isRead: true,
+        }
+      );
 
       res.json({
         message: `${updated.modifiedCount} notifications marked as read.`,
@@ -113,15 +91,6 @@ router.put(
     }
   }
 );
-
-// Mark single notification as read
-const notif = await Notification.findById(req.params.id);
-   if (!notif) return res.status(404).json({ message: "Notification not found" });
-   if (notif.recipient.toString() !== req.userId) {
-     return res.status(403).json({ message: "Not authorized." });
-   }
-   // then proceed with update/delete
-
 
 // Mark single notification as read
 router.put(
@@ -199,26 +168,19 @@ router.delete(
 );
 
 // Get notifications for logged-in user
-
 router.get(
   "/my-notifications",
-
   async (req, res) => {
     try {
-      const notifications =
-        await Notification.find({
-          recipient:
-            req.userId,
-        }).sort({
-          createdAt: -1,
-        });
+      const notifications = await Notification.find({
+        recipient: req.userId,
+      }).sort({
+        createdAt: -1,
+      });
 
       res.json(notifications);
     } catch (err) {
-      console.error(
-        "Notification fetch error:",
-        err.message
-      );
+      console.error("Notification fetch error:", err.message);
 
       res.status(500).json({
         error: err.message,

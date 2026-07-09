@@ -21,6 +21,13 @@ import Button from './ui/Button';
 
 import userService from '../services/userService';
 
+interface ComplaintImage {
+  fileId: string;
+  id: string;
+  url: string;
+  _id: string;
+}
+
 interface Complaint {
   _id: string;
 
@@ -42,7 +49,7 @@ interface Complaint {
 
   votes?: number;
 
-  images?: string[];
+  images?: ComplaintImage[];
 }
 
 interface ComplaintCardProps {
@@ -333,13 +340,16 @@ const ComplaintCard: React.FC<
             <div className="complaint-images mb-4 flex flex-wrap gap-3">
               {complaint.images.map(
                 (
-                  imgUrl,
+                  img,
                   idx
                 ) => (
                   <img
-                    key={idx}
+                    key={
+                      img._id ??
+                      idx
+                    }
                     src={
-                      imgUrl
+                      img.url
                     }
                     alt={`complaint-img-${idx}`}
                     className="w-32 h-24 object-cover rounded-lg border border-slate-200"

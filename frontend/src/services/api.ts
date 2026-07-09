@@ -4,14 +4,25 @@ import axios from 'axios';
 export const api = axios.create({
   baseURL: 'http://localhost:5000/api',
   withCredentials: true, // Crucial: Transmits httpOnly cookies securely over cross-origins
+  headers: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Content-Type': 'application/json',
+  },
 });
 
 // Request Interceptor: Automatically inject access tokens to outgoing traffic
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token && config.headers) {
+      // Supports both string mappings and explicit header class wrappers safely
+      if (typeof config.headers.set === 'function') {
+        config.headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -43,7 +54,13 @@ api.interceptors.response.use(
           localStorage.setItem('token', accessToken);
 
           // 2. Patch authorization context for the deferred transaction
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          if (originalRequest.headers) {
+            if (typeof originalRequest.headers.set === 'function') {
+              originalRequest.headers.set('Authorization', `Bearer ${accessToken}`);
+            } else {
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            }
+          }
 
           // 3. Retry the request with the shared configured instance
           return api(originalRequest);
@@ -57,7 +74,8 @@ api.interceptors.response.use(
         localStorage.removeItem('userRole');
         
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          // Redirects to home page landing gateway instead of a broken generic '/login' path
+          window.location.href = '/';
         }
       }
     }

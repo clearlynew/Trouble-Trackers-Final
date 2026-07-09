@@ -14,13 +14,19 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
           <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/student-login" element={<StudentLogin />} />
-            <Route path="/student-dashboard" element={<StudentDashboard />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/superadmin-dashboard" element={<SuperAdminDashboard />} />
-          </Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/student-login" element={<StudentLogin />} />
+          
+          {/* Handles both hyphenated and slashed routes so you never get a blank screen */}
+          <Route path="/student-dashboard" element={<StudentDashboard />} />
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          
+          <Route path="/superadmin-dashboard" element={<SuperAdminDashboard />} />
+        </Routes>
         </div>
       </Router>
     </AppProvider>

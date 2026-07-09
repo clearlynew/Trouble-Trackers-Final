@@ -225,6 +225,7 @@ router.put("/:id/status", authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // Vote toggle
+// Vote toggle (Fixed with logging and array safety check)
 router.patch("/:id/vote", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;
@@ -236,16 +237,29 @@ router.patch("/:id/vote", authMiddleware, async (req, res) => {
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) return res.status(404).json({ message: "Complaint not found" });
 
-    const hasVoted = complaint.votedBy.some((id) => id.toString() === userId.toString());
+    // Safeguard: Initialize votedBy array if it doesn't exist on older documents
+    if (!complaint.votedBy) {
+      complaint.votedBy = [];
+    }
+
+    // Safeguard: Ensure userId exists before casting to string
+    if (!userId) {
+      return res.status(401).json({ message: "User identity missing from request token." });
+    }
+
+    const hasVoted = complaint.votedBy.some((id) => id && id.toString() === userId.toString());
     if (hasVoted) {
-      complaint.votedBy = complaint.votedBy.filter((id) => id.toString() !== userId.toString());
+      complaint.votedBy = complaint.votedBy.filter((id) => id && id.toString() !== userId.toString());
     } else {
       complaint.votedBy.push(userId);
     }
+    
     const updatedComplaint = await complaint.save();
     res.json(updatedComplaint);
   } catch (err) {
-    res.status(500).json({ message: "Server error during vote operation." });
+    // Now you will see exactly what broke in your backend logs!
+    console.error("VOTE ROUTE ERROR:", err);
+    res.status(500).json({ message: "Server error during vote operation.", error: err.message });
   }
 });
 

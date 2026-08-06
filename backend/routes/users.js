@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
+import superAdminMiddleware from "../middleware/superAdmin.js";
 
 const router = express.Router();
 
@@ -35,20 +36,16 @@ router.get("/:id", async (req, res) => {
 
 
 /* ==========================================
-   🔒 ADMIN-ONLY ROUTES
+   🔒 ADMIN-ONLY ROUTES (view access)
    ========================================== */
 
-// Get all users (Paginated)
+// Get all users (Paginated) — admin or superadmin can view
 router.get("/", adminMiddleware, async (req, res) => {
   try {
-    // Parse pagination parameters with safe defaults
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
-    
-    // Calculate the number of documents to skip
     const skip = (page - 1) * limit;
 
-    // Run count and query in parallel for performance
     const [users, total] = await Promise.all([
       User.find()
         .select("-passwordHash")
@@ -70,9 +67,13 @@ router.get("/", adminMiddleware, async (req, res) => {
   }
 });
 
+
+/* ==========================================
+   🔒🔒 SUPERADMIN-ONLY ROUTES (mutations)
+   ========================================== */
+
 // Create new user
-// POST /api/users (Create new user)
-router.post("/", adminMiddleware, async (req, res) => {
+router.post("/", superAdminMiddleware, async (req, res) => {
   try {
     const { name, email, password, role, category, room } = req.body;
 
@@ -93,7 +94,6 @@ router.post("/", adminMiddleware, async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
-    // ✅ FIXED: Add explicit status and tokenVersion initializers here
     const user = new User({
       name,
       email: normalizedEmail,
@@ -101,12 +101,12 @@ router.post("/", adminMiddleware, async (req, res) => {
       role,
       category,
       room,
-      status: "active",     // Ensures the authorization middleware doesn't block them
-      tokenVersion: 0       // Syncs up with the token decoding check
+      status: "active",
+      tokenVersion: 0
     });
 
     const newUser = await user.save();
-    
+
     const userResponse = newUser.toJSON();
     delete userResponse.passwordHash;
 
@@ -115,14 +115,14 @@ router.post("/", adminMiddleware, async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+
 // Update user
-router.patch("/:id", adminMiddleware, async (req, res) => {
+router.patch("/:id", superAdminMiddleware, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });
     }
 
-    // Destructure explicitly to avoid Mass Assignment
     const { name, email, password, role, category, room } = req.body;
     const updateData = {};
 
@@ -136,8 +136,6 @@ router.patch("/:id", adminMiddleware, async (req, res) => {
         return res.status(400).json({ message: "Password must be at least 8 characters long." });
       }
       updateData.passwordHash = await bcrypt.hash(password.trim(), 10);
-      
-      // Force user to log out of all active devices on password change
       updateData.$inc = { tokenVersion: 1 };
     }
 
@@ -162,7 +160,7 @@ router.patch("/:id", adminMiddleware, async (req, res) => {
 });
 
 // Toggle user status
-router.patch("/:id/toggle-status", adminMiddleware, async (req, res) => {
+router.patch("/:id/toggle-status", superAdminMiddleware, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });
@@ -174,13 +172,10 @@ router.patch("/:id/toggle-status", adminMiddleware, async (req, res) => {
     }
 
     user.status = user.status === "active" ? "inactive" : "active";
-    
-    // Increment version so their existing active login tokens become immediately invalid
     user.tokenVersion += 1;
 
     await user.save();
 
-    // Prevent password leak explicitly
     const userResponse = user.toJSON();
     delete userResponse.passwordHash;
 
@@ -191,7 +186,7 @@ router.patch("/:id/toggle-status", adminMiddleware, async (req, res) => {
 });
 
 // Delete user
-router.delete("/:id", adminMiddleware, async (req, res) => {
+router.delete("/:id", superAdminMiddleware, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });

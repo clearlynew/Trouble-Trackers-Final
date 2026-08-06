@@ -1,6 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import rateLimit from "express-rate-limit";
 
 import User from "../models/User.js";
 
@@ -19,8 +20,17 @@ if (!process.env.REFRESH_SECRET) {
   process.exit(1);
 }
 
+// Rate limiter: max 10 login attempts per 15 minutes, per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { message: "Too many login attempts. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // POST /api/auth/login
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   try {

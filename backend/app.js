@@ -2,6 +2,7 @@ import "./config/env.js";
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 
 // routes
 import complaintRoutes from "./routes/complaints.js";
@@ -27,6 +28,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 
 // routes

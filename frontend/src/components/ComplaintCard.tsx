@@ -1,7 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-} from 'react';
+import React from 'react';
 
 import {
   ThumbsUp,
@@ -19,13 +16,17 @@ import Card from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
 
-import userService from '../services/userService';
-
 interface ComplaintImage {
   fileId: string;
   id: string;
   url: string;
   _id: string;
+}
+
+interface PopulatedUser {
+  _id: string;
+  name: string;
+  email?: string;
 }
 
 interface Complaint {
@@ -37,13 +38,13 @@ interface Complaint {
 
   status: string;
 
-  submittedBy: string;
+  submittedBy: PopulatedUser;
 
   createdAt: string;
 
   domain: string;
 
-  assignedTo?: string | null;
+  assignedTo?: PopulatedUser | null;
 
   votedBy?: string[];
 
@@ -97,100 +98,8 @@ const ComplaintCard: React.FC<
   onDelete,
   onAssign,
 }) => {
-  const [
-    submittedByName,
-    setSubmittedByName,
-  ] = useState(
-    'Unknown'
-  );
-
-  const [
-    assignedAdminName,
-    setAssignedAdminName,
-  ] = useState<
-    string | null
-  >(null);
-
-  const [
-    isLoadingUser,
-    setIsLoadingUser,
-  ] = useState(true);
-
-  const [
-    isLoadingAdmin,
-    setIsLoadingAdmin,
-  ] = useState(false);
-
-  useEffect(() => {
-    const fetchUserNames =
-      async () => {
-        setIsLoadingUser(
-          true
-        );
-
-        setIsLoadingAdmin(
-          !!complaint.assignedTo
-        );
-
-        try {
-          // submitted user
-
-          const submitter =
-            await userService.getById(
-              complaint.submittedBy
-            );
-
-          setSubmittedByName(
-            submitter.name
-          );
-
-          // assigned admin
-
-          if (
-            complaint.assignedTo
-          ) {
-            const admin =
-              await userService.getById(
-                complaint.assignedTo
-              );
-
-            setAssignedAdminName(
-              admin.name
-            );
-          } else {
-            setAssignedAdminName(
-              null
-            );
-          }
-        } catch (err) {
-          console.error(
-            'Failed to fetch user data:',
-            err
-          );
-
-          setSubmittedByName(
-            'Unknown User'
-          );
-
-          setAssignedAdminName(
-            'Error Fetching Admin'
-          );
-        } finally {
-          setIsLoadingUser(
-            false
-          );
-
-          setIsLoadingAdmin(
-            false
-          );
-        }
-      };
-
-    fetchUserNames();
-  }, [
-    complaint.submittedBy,
-    complaint.assignedTo,
-  ]);
+  const submittedByName = complaint.submittedBy?.name ?? 'Unknown User';
+  const assignedAdminName = complaint.assignedTo?.name ?? null;
 
   const isAdmin =
     currentUserRole ===
@@ -370,9 +279,7 @@ const ComplaintCard: React.FC<
             Submitted By:
 
             <span className="font-medium text-slate-700">
-              {isLoadingUser
-                ? 'Loading...'
-                : submittedByName}
+              {submittedByName}
             </span>
           </span>
 
@@ -414,12 +321,8 @@ const ComplaintCard: React.FC<
             Assigned Staff:
           </span>
 
-          {isLoadingAdmin ? (
-            <span className="text-sm text-slate-500">
-              Loading...
-            </span>
-          ) : isAssigned &&
-            assignedAdminName ? (
+          {isAssigned &&
+          assignedAdminName ? (
             <span className="font-semibold text-blue-600">
               {
                 assignedAdminName

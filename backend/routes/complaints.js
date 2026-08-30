@@ -27,6 +27,8 @@ router.get("/", authMiddleware, async (req, res) => {
     // Run count and query in parallel for performance
     const [complaints, total] = await Promise.all([
       Complaint.find()
+        .populate("submittedBy", "name email")
+        .populate("assignedTo", "name email")
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 }), // Sort by newest first by default
@@ -52,7 +54,9 @@ router.get("/:id", authMiddleware, async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid complaint ID." });
     }
-    const complaint = await Complaint.findById(req.params.id);
+    const complaint = await Complaint.findById(req.params.id)
+      .populate("submittedBy", "name email")
+      .populate("assignedTo", "name email");
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
     }
@@ -234,30 +238,28 @@ router.patch("/:id/vote", authMiddleware, async (req, res) => {
       return res.status(403).json({ message: "Only students may vote." });
     }
 
-    const complaint = await Complaint.findById(req.params.id);
-    if (!complaint) return res.status(404).json({ message: "Complaint not found" });
+    // Try to add the vote atomically — only succeeds if not already present
+    let updatedComplaint = await Complaint.findOneAndUpdate(
+      { _id: req.params.id, votedBy: { $ne: userId } },
+      { $addToSet: { votedBy: userId } },
+      { new: true }
+    );
 
-    // Safeguard: Initialize votedBy array if it doesn't exist on older documents
-    if (!complaint.votedBy) {
-      complaint.votedBy = [];
+    if (!updatedComplaint) {
+      // Either not found, or already voted — try removing the vote atomically instead
+      updatedComplaint = await Complaint.findOneAndUpdate(
+        { _id: req.params.id, votedBy: userId },
+        { $pull: { votedBy: userId } },
+        { new: true }
+      );
     }
 
-    // Safeguard: Ensure userId exists before casting to string
-    if (!userId) {
-      return res.status(401).json({ message: "User identity missing from request token." });
+    if (!updatedComplaint) {
+      return res.status(404).json({ message: "Complaint not found" });
     }
 
-    const hasVoted = complaint.votedBy.some((id) => id && id.toString() === userId.toString());
-    if (hasVoted) {
-      complaint.votedBy = complaint.votedBy.filter((id) => id && id.toString() !== userId.toString());
-    } else {
-      complaint.votedBy.push(userId);
-    }
-    
-    const updatedComplaint = await complaint.save();
     res.json(updatedComplaint);
   } catch (err) {
-    // Now you will see exactly what broke in your backend logs!
     console.error("VOTE ROUTE ERROR:", err);
     res.status(500).json({ message: "Server error during vote operation.", error: err.message });
   }

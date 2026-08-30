@@ -1,32 +1,32 @@
-# Hostel Complaint Management System
+# Hostel Complaint Management System (Trouble Trackers)
 
 ## Project Overview
 
-The **Hostel Complaint Management System** is a full‑stack web application developed to digitize and streamline the process of registering, tracking, and resolving hostel‑related complaints. The system replaces the existing manual and fragmented complaint mechanism with a centralized, transparent, and efficient platform for students and hostel administration.
+The **Hostel Complaint Management System** is a full-stack web application built to digitize and streamline registering, tracking, and resolving hostel-related complaints. It replaces manual, fragmented complaint handling with a centralized, transparent, and secure platform for students and hostel administration.
 
-This project was developed as an **academic group project (Team 12)** and focuses on improving operational efficiency, communication, and facility management within college hostels.
+Developed as an **academic group project (Team 12)**, with a focus on operational efficiency, communication, and facility management within college hostels.
 
 ---
 
 ## Problem Statement
 
-Traditional hostel complaint handling systems suffer from:
+Traditional hostel complaint handling suffers from:
 
-* Lack of a centralized platform
-* Slow complaint resolution
-* Poor tracking and prioritization of issues
+* No centralized platform
+* Slow, untracked resolution
+* Poor prioritization of issues
 * Communication gaps between students and administrators
 
-These issues result in delayed maintenance, low transparency, and inefficient administrative workflows. This system addresses these challenges through automation and real‑time tracking.
+This system addresses these through automation, role-based access, and real-time status tracking.
 
 ---
 
 ## Objectives
 
 * Manage complaint records efficiently
-* Enable real‑time complaint status tracking
+* Enable real-time complaint status tracking
 * Ensure faster issue resolution
-* Improve overall hostel facility management
+* Improve hostel facility management
 * Enhance communication between students and administration
 
 ---
@@ -34,93 +34,90 @@ These issues result in delayed maintenance, low transparency, and inefficient ad
 ## Key Features
 
 ### Student Module
-
-* Secure user authentication
-* Complaint submission with category and description
-* Real‑time status tracking (Submitted → In Progress → Resolved)
-* Complaint history view
+* Secure authentication with JWT access and refresh tokens
+* Complaint submission with category, description, and image attachments
+* Duplicate-complaint detection
+* Upvoting on complaints to signal community priority
+* Sort complaints by votes (priority) or recency
+* Real-time status tracking (Pending → In Progress → Resolved / Rejected)
+* Paginated complaint history and complaint board
 
 ### Admin / Warden Module
-
-* Dashboard to view and manage all complaints
-* Assign complaints to maintenance teams
+* Paginated dashboard to view and manage complaints
+* Assign complaints to relevant admins
 * Update complaint status
-* Monitor resolution efficiency
+* Broadcast notifications to multiple recipients
 
 ### System Features
-
-* Role‑based access control
-* Notifications on status updates
-* Centralized digital complaint records
+* Role-based access control (Student / Admin / Superadmin)
+* Email confirmation on complaint submission plus in-app notifications on status changes
+* Centralized digital complaint records with timestamps for tracking and reporting
+* Automatic image cleanup from storage when a complaint is deleted
 
 ---
 
 ## Technology Stack
 
 ### Frontend
-
-* React.js
-* TypeScript
-* Responsive UI (PWA-ready)
+* React.js + TypeScript
+* Vite
+* Tailwind CSS
+* Custom React hooks for data fetching, filtering, and notifications
 
 ### Backend
-
-* Node.js
-* Express.js
-* RESTful APIs
-* Nodemailer (email notifications)
+* Node.js + Express.js
+* RESTful API design
+* Nodemailer for email notifications
+* express-rate-limit for request throttling
+* Jest + Supertest for automated testing
 
 ### Database
-
 * MongoDB (MongoDB Atlas)
+* Mongoose ODM
 
 ### Media & File Handling
-
-* ImageKit (secure image uploads and storage)
+* ImageKit for secure image upload, storage, and delivery
 
 ### Security
-
-* JWT authentication with refresh tokens
+* JWT authentication with access and refresh tokens
 * bcrypt password hashing
+* Role-based middleware for route protection
+* CORS configuration
+* Rate-limited authentication endpoints
 
 ### Deployment & Tools
-
 * Git & GitHub for version control
 * Cloud hosting (Render / Vercel)
-* Nodemailer for email notifications
-* ImageKit for image upload and media storage
 
 ---
 
 ## System Architecture
 
-The system follows a layered architecture:
-
-1. **Presentation Layer** – React.js UI for complaint submission and tracking
-2. **Application Layer** – Node.js & Express.js handling business logic and routing
-3. **Data Access Layer** – Mongoose models for secure CRUD operations
+1. **Presentation Layer** – React.js UI for complaint submission, tracking, and admin management
+2. **Application Layer** – Node.js & Express.js handling business logic, authentication, and routing
+3. **Data Access Layer** – Mongoose models for validated, structured CRUD operations
 4. **Database Layer** – MongoDB Atlas for persistent cloud storage
 
 ---
 
 ## Functional Requirements
 
-* User authentication (Student / Admin)
-* Complaint submission with optional attachments
-* Real‑time complaint tracking
-* Admin dashboard for complaint management
-* Notification system
+* User authentication (Student / Admin / Superadmin) with token refresh
+* Complaint submission with optional image attachments
+* Real-time complaint tracking with paginated views
+* Admin dashboard for complaint management and assignment
+* In-app and email notification system
 * Complaint history maintenance
 
 ---
 
-## Non‑Functional Requirements
+## Non-Functional Requirements
 
 * **Usability:** Intuitive UI requiring no training
-* **Performance:** Fast response for core operations
-* **Security:** JWT, bcrypt, and role‑based access control
-* **Reliability:** High availability with regular backups
-* **Scalability:** Modular architecture for future growth
+* **Performance:** Paginated queries keep response times fast as data grows
+* **Security:** JWT, bcrypt, role-based access control, and rate limiting
+* **Reliability:** Automated tests cover core authentication and complaint workflows
+* **Scalability:** Modular architecture designed for future growth
 * **Portability:** Works on all modern browsers and mobile devices
 
 ---
@@ -128,8 +125,7 @@ The system follows a layered architecture:
 ## Installation & Setup
 
 ### Prerequisites
-
-* Node.js
+* Node.js (v18+)
 * MongoDB / MongoDB Atlas
 * Git
 
@@ -141,7 +137,7 @@ cd your-repo-name
 npm install
 ```
 
-Create a `.env` file based on `.env.example` and configure environment variables.
+Create a `.env` file based on `.env.example` and configure your environment variables.
 
 Run the application:
 
@@ -149,26 +145,15 @@ Run the application:
 npm start
 ```
 
----
+Run the automated test suite:
+
+```bash
+npm test
+```
 
 ---
 
 ## Future Enhancements
-
-* QR code‑based complaint registration
-* Email / SMS notifications
-* Priority‑based complaint handling
-* Analytics and reporting dashboard
-* Mobile application support
-
----
-
-## Contributors
-
-This project was developed as an academic group project.
-
----
-
-## License
-
-This project is developed for academic and learning purposes.
+* Real-time notifications via WebSockets
+* QR code-based complaint registration
+* Analytics dashboard for resolution time and complaint trends

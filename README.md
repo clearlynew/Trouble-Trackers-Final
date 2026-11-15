@@ -1,159 +1,120 @@
-# Hostel Complaint Management System (Trouble Trackers)
+# Trouble Trackers: Hostel Complaint Management System
 
-## Project Overview
+A full-stack MERN (TypeScript) web app for registering, tracking and resolving hostel complaints. Students raise and upvote complaints, admins are assigned and resolve them, and a superadmin manages users. Deployed on AWS (EC2, S3, CloudFront).
 
-The **Hostel Complaint Management System** is a full-stack web application built to digitize and streamline registering, tracking, and resolving hostel-related complaints. It replaces manual, fragmented complaint handling with a centralized, transparent, and secure platform for students and hostel administration.
+Built as a 4-person academic team project.
 
-Developed as an **academic group project (Team 12)**, with a focus on operational efficiency, communication, and facility management within college hostels.
+## Features
 
----
+**Students**
+- Submit complaints with a category, description and image attachments
+- Duplicate detection: a very similar recent complaint is rejected with a `409`
+- Upvote complaints so the most-affected issues rise to the top; sort by votes or recency
+- Track status: pending, in-progress, resolved, rejected
+- Paginated complaint board and personal history
 
-## Problem Statement
+**Admins**
+- Paginated dashboard of complaints
+- Assign complaints to an active admin; update status
+- Broadcast notifications to multiple recipients
 
-Traditional hostel complaint handling suffers from:
+**Superadmin**
+- Create, edit, activate/deactivate and delete users and admins
 
-* No centralized platform
-* Slow, untracked resolution
-* Poor prioritization of issues
-* Communication gaps between students and administrators
+**System**
+- Role-based access control (student / admin / superadmin) enforced in middleware
+- Email confirmation on submission, plus in-app notifications on status changes
+- Images are removed from ImageKit when a complaint is deleted
 
-This system addresses these through automation, role-based access, and real-time status tracking.
+## Tech stack
 
----
+| Layer | Technology |
+|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS, custom hooks |
+| Backend | Node.js, Express, REST API |
+| Database | MongoDB Atlas, Mongoose |
+| Auth | JWT access + refresh tokens, bcrypt |
+| Media / email | ImageKit, Nodemailer |
+| Testing | Jest, Supertest |
+| Deployment | AWS EC2 + Nginx + PM2, S3, CloudFront |
 
-## Objectives
+## Architecture
 
-* Manage complaint records efficiently
-* Enable real-time complaint status tracking
-* Ensure faster issue resolution
-* Improve hostel facility management
-* Enhance communication between students and administration
+```
+Browser
+   │  HTTPS
+   ▼
+CloudFront ──── /*      ──▶ S3 (Vite production build)
+   │
+   └────────── /api/*  ──▶ EC2: Nginx ──▶ Express (PM2) ──▶ MongoDB Atlas
+```
 
----
+CloudFront serves the React build from S3 and forwards `/api/*` to the backend on EC2, so the browser talks to a single HTTPS origin. Full step-by-step deployment notes, including the problems hit along the way, are in [AWS_Setup.md](AWS_Setup.md).
 
-## Key Features
+Code layout:
 
-### Student Module
-* Secure authentication with JWT access and refresh tokens
-* Complaint submission with category, description, and image attachments
-* Duplicate-complaint detection
-* Upvoting on complaints to signal community priority
-* Sort complaints by votes (priority) or recency
-* Real-time status tracking (Pending → In Progress → Resolved / Rejected)
-* Paginated complaint history and complaint board
+```
+backend/
+  app.js            Express app, CORS, route mounting
+  routes/           auth, complaints, users, notifications, imageupload
+  middleware/       auth (JWT), admin, superAdmin
+  models/           User, Complaint, Notification
+  tests/            Jest + Supertest
+frontend/src/
+  pages/            Landing, student/admin/superadmin dashboards, logins
+  components/       complaint cards, filters, modals, notification panel
+  hooks/            data fetching, filtering, notifications
+  services/         API client layer
+```
 
-### Admin / Warden Module
-* Paginated dashboard to view and manage complaints
-* Assign complaints to relevant admins
-* Update complaint status
-* Broadcast notifications to multiple recipients
+## Security
 
-### System Features
-* Role-based access control (Student / Admin / Superadmin)
-* Email confirmation on complaint submission plus in-app notifications on status changes
-* Centralized digital complaint records with timestamps for tracking and reporting
-* Automatic image cleanup from storage when a complaint is deleted
+- Passwords hashed with bcrypt
+- Access tokens expire in 15 minutes, refresh tokens in 7 days
+- Login limited to 10 attempts per 15 minutes per IP (`express-rate-limit`)
+- Route protection through role middleware; students can only edit their own complaints, and only superadmins can manage users
+- CORS restricted to the configured `FRONTEND_URL`
+- Secrets live in environment variables; `.env` is not committed
 
----
+## Tests
 
-## Technology Stack
+Six automated tests (Jest + Supertest) cover authentication and permission rules:
 
-### Frontend
-* React.js + TypeScript
-* Vite
-* Tailwind CSS
-* Custom React hooks for data fetching, filtering, and notifications
+- valid login returns a token; wrong password is rejected
+- unauthenticated complaint creation is rejected
+- a student cannot edit another student's complaint
+- a non-admin cannot create users
+- assigning a complaint to an inactive admin is rejected
 
-### Backend
-* Node.js + Express.js
-* RESTful API design
-* Nodemailer for email notifications
-* express-rate-limit for request throttling
-* Jest + Supertest for automated testing
+They cover access control, not every endpoint. Frontend tests are not included.
 
-### Database
-* MongoDB (MongoDB Atlas)
-* Mongoose ODM
+## Run locally
 
-### Media & File Handling
-* ImageKit for secure image upload, storage, and delivery
-
-### Security
-* JWT authentication with access and refresh tokens
-* bcrypt password hashing
-* Role-based middleware for route protection
-* CORS configuration
-* Rate-limited authentication endpoints
-
-### Deployment & Tools
-* Git & GitHub for version control
-* Cloud hosting (Render / Vercel)
-
----
-
-## System Architecture
-
-1. **Presentation Layer** – React.js UI for complaint submission, tracking, and admin management
-2. **Application Layer** – Node.js & Express.js handling business logic, authentication, and routing
-3. **Data Access Layer** – Mongoose models for validated, structured CRUD operations
-4. **Database Layer** – MongoDB Atlas for persistent cloud storage
-
----
-
-## Functional Requirements
-
-* User authentication (Student / Admin / Superadmin) with token refresh
-* Complaint submission with optional image attachments
-* Real-time complaint tracking with paginated views
-* Admin dashboard for complaint management and assignment
-* In-app and email notification system
-* Complaint history maintenance
-
----
-
-## Non-Functional Requirements
-
-* **Usability:** Intuitive UI requiring no training
-* **Performance:** Paginated queries keep response times fast as data grows
-* **Security:** JWT, bcrypt, role-based access control, and rate limiting
-* **Reliability:** Automated tests cover core authentication and complaint workflows
-* **Scalability:** Modular architecture designed for future growth
-* **Portability:** Works on all modern browsers and mobile devices
-
----
-
-## Installation & Setup
-
-### Prerequisites
-* Node.js (v18+)
-* MongoDB / MongoDB Atlas
-* Git
-
-### Steps
+Prerequisites: Node.js 18+, a MongoDB instance (local or Atlas), an ImageKit account, and an email account for Nodemailer.
 
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/clearlynew/Trouble-Trackers-Final.git
+cd Trouble-Trackers-Final
+
+# backend
+cd backend
 npm install
+cp .env.example .env     # fill in the values
+npm run dev              # http://localhost:5000
+
+# frontend (new terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
-Create a `.env` file based on `.env.example` and configure your environment variables.
+Backend environment variables (see `backend/.env.example`): `PORT`, `MONGO_URI`, `JWT_SECRET`, `REFRESH_SECRET`, `JWT_EXPIRE`, `NODE_ENV`, `EMAIL_USER`, `EMAIL_PASS`, `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT`, `FRONTEND_URL`.
 
-Run the application:
+Seed sample data with `node seed.js` from `backend/`. Run the tests with `npm test` from `backend/` (needs a local MongoDB for `MONGO_URI_TEST`).
 
-```bash
-npm start
-```
+## Limitations and future work
 
-Run the automated test suite:
-
-```bash
-npm test
-```
-
----
-
-## Future Enhancements
-* Real-time notifications via WebSockets
-* QR code-based complaint registration
-* Analytics dashboard for resolution time and complaint trends
+- Notifications are fetched on demand; real-time delivery (WebSockets) is not implemented
+- The backend runs on a single EC2 instance with no autoscaling or load balancer
+- Test coverage is limited to auth and permission paths
+- Ideas: QR-code complaint registration, analytics on resolution time and complaint trends
